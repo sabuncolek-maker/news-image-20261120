@@ -8,11 +8,23 @@ summary (size in bytes, dimensions, SHA-256 prefix).
 import hashlib
 import os
 import shutil
+import struct
 import sys
-from PIL import Image
 
 SRC = os.path.join(os.path.dirname(os.path.abspath(__file__)), "entry.png")
 DST = "/output/entry.png"
+
+
+def png_dimensions(path):
+    """Read (width, height) from a PNG file's IHDR chunk (stdlib only)."""
+    with open(path, "rb") as f:
+        header = f.read(24)
+    if len(header) < 24 or header[:8] != b"\x89PNG\r\n\x1a\n":
+        raise ValueError(f"not a PNG file: {path}")
+    if header[12:16] != b"IHDR":
+        raise ValueError(f"missing IHDR chunk: {path}")
+    width, height = struct.unpack(">II", header[16:24])
+    return width, height
 
 
 def sha256_of(path):
@@ -37,8 +49,7 @@ def main():
         print(f"  copy:   {dst_hash}", file=sys.stderr)
         return 1
     size = os.path.getsize(DST)
-    with Image.open(DST) as im:
-        width, height = im.size
+    width, height = png_dimensions(DST)
     if size > 1024 * 1024:
         print(f"error: entry.png is {size} bytes, over the 1 MiB limit",
               file=sys.stderr)
