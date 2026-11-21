@@ -34,6 +34,11 @@ def png_dimensions(path):
     return width, height
 
 
+MAX_BYTES = 1024 * 1024  # bounty limit: entry.png must be at most 1 MiB
+EXPECTED_WIDTH = 1024
+EXPECTED_HEIGHT = 1024
+
+
 def main():
     os.makedirs(DST_DIR, exist_ok=True)
     shutil.copyfile(SRC, DST)
@@ -43,6 +48,16 @@ def main():
         raise SystemExit("copy verification failed: hashes differ")
     size = os.path.getsize(DST)
     width, height = png_dimensions(DST)
+    if size > MAX_BYTES:
+        raise SystemExit(
+            "entry.png too large: {} bytes exceeds 1 MiB limit".format(size)
+        )
+    if (width, height) != (EXPECTED_WIDTH, EXPECTED_HEIGHT):
+        raise SystemExit(
+            "entry.png has wrong dimensions: {}x{} px, expected 1024x1024".format(
+                width, height
+            )
+        )
     print(
         "entry.png: {} bytes, {}x{} px, sha256 verified ({})".format(
             size, width, height, dst_hash[:16]
